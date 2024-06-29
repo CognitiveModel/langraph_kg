@@ -1,42 +1,19 @@
 import os
 import pandas as pd
 import json
-from langchain_community.document_loaders import PyMuPDFLoader
-from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langgraph.graph import END, StateGraph, START
 from typing_extensions import TypedDict
 from openai import OpenAI
 from langchain_openai import ChatOpenAI
 from dotenv import load_dotenv
-from chain.chains import structured_chunk, structured_completeness_check, kg_creation, kg_completeness_check
+from scripts.chains import structured_chunk, structured_completeness_check, kg_creation, kg_completeness_check
+from scripts.io import load_data, write_to_json
 
 load_dotenv()
 
 output_file_path = "D:/LLM/Knowledge_Graph_Groq/KG/data_input/check1.json"
-
-def load_data(pdf_file):
-
-    
-    loader = PyMuPDFLoader(pdf_file)
-    # loader = DirectoryLoader(inputdirectory, show_progress=True)
-    documents = loader.load()
-
-    splitter = RecursiveCharacterTextSplitter(
-        chunk_size=1000,
-        chunk_overlap=100,
-        length_function=len,
-        is_separator_regex=False,
-    )
-
-    pages = splitter.split_documents(documents)
-    print("Number of chunks = ", len(pages))
-    # print("First chunk content: \n", pages[0].page_content)
-
-    # pages[1].page_content
-    return len(pages), pages
-
-
-chunks, pages = load_data(os.environ.get("PDF_DIR"))
+pdf_file = "D:/LLM/input/check.pdf"
+chunks, pages = load_data(path=pdf_file)
 
 
 # -------------------LLM prompts and chains---------------------------------
@@ -56,7 +33,7 @@ chat = ChatOpenAI(
     temperature=0,
     model = "llama3-70b-8192",
     base_url="https://api.groq.com/openai/v1",
-    api_key="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",
+    api_key=" ",
 )
 
 
@@ -193,34 +170,4 @@ for chunk in range(chunks):
 
 # --------convert and save to JSON file----------
 
-if os.path.exists(output_file_path):
-        json_string = kg_df.to_dict(orient='records')
-            # print(json_string2)
-
-
-            # Read the existing data from the JSON file
-        with open(output_file_path, 'r') as file:
-            data = json.load(file)
-
-            data.extend(json_string)    
-
-
-            # Write the updated data back to the JSON file
-        with open(output_file_path, 'w') as file:
-            json.dump(data, file)
-
-        print("New entry added successfully.")
-
-
-
-
-
-else:
-    json_string = kg_df.to_json(orient='records')  # 'records' format for a list of dictionaries
-
-
-                    # Save JSON to a file
-
-    with open(output_file_path, 'w') as json_file:
-        json_file.write(json_string)
-    print("First entry added successfully.")
+write_to_json(output_file_path=output_file_path, kg_df=kg_df)
