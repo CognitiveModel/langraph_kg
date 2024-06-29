@@ -17,10 +17,20 @@ api_key = " "
 
 
 # -------------load data-----------------------
+
 chunks, pages = load_data(path=pdf_file)
 
-# -------------------LLM prompts and chains---------------------------------
 
+# ----------------LLM model load----------------
+chat = ChatOpenAI(
+    temperature=0,
+    model = "llama3-70b-8192",
+    base_url="https://api.groq.com/openai/v1",
+    api_key=api_key,
+)
+
+
+# ------------------output schema of knowledge graph-------------------
 schema = '''
 ```[
     {
@@ -32,13 +42,8 @@ schema = '''
 ]```
 '''
 
-chat = ChatOpenAI(
-    temperature=0,
-    model = "llama3-70b-8192",
-    base_url="https://api.groq.com/openai/v1",
-    api_key=api_key,
-)
 
+# -------------------LLM prompts and chains---------------------------------
 
 structured_chunk_chain = structured_chunk(chat)
 structured_completeness_check_chain = structured_completeness_check(chat)
