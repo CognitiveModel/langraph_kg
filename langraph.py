@@ -13,8 +13,11 @@ load_dotenv()
 
 output_file_path = "D:/LLM/Knowledge_Graph_Groq/KG/data_input/check1.json"
 pdf_file = "D:/LLM/input/check.pdf"
-chunks, pages = load_data(path=pdf_file)
+api_key = " "
 
+
+# -------------load data-----------------------
+chunks, pages = load_data(path=pdf_file)
 
 # -------------------LLM prompts and chains---------------------------------
 
@@ -33,7 +36,7 @@ chat = ChatOpenAI(
     temperature=0,
     model = "llama3-70b-8192",
     base_url="https://api.groq.com/openai/v1",
-    api_key=" ",
+    api_key=api_key,
 )
 
 
@@ -41,6 +44,8 @@ structured_chunk_chain = structured_chunk(chat)
 structured_completeness_check_chain = structured_completeness_check(chat)
 kg_creation_chain = kg_creation(chat)
 kg_completeness_check_chain = kg_completeness_check(chat)
+
+
 # --------------------------Langraph Implementstion------------------------------
 
 class GraphState(TypedDict):
