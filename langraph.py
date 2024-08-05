@@ -13,7 +13,7 @@ load_dotenv()
 
 output_file_path = "D:/LLM/Knowledge_Graph_Groq/KG/data_input/check1.json"
 pdf_file = "D:/LLM/Knowledge_Graph_Groq/KG/data_input/Assignment-1.pdf"
-api_key = "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"
+api_key = "YOUR_GROQ_API_KEY"
 
 
 # -------------load data-----------------------
