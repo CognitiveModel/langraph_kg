@@ -12,8 +12,8 @@ from scripts.io import load_data, write_to_json
 load_dotenv()
 
 output_file_path = "D:/LLM/Knowledge_Graph_Groq/KG/data_input/check1.json"
-pdf_file = "D:/LLM/input/check.pdf"
-api_key = " "
+pdf_file = "D:/LLM/Knowledge_Graph_Groq/KG/data_input/Assignment-1.pdf"
+api_key = "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"
 
 
 # -------------load data-----------------------
@@ -22,6 +22,7 @@ chunks, pages = load_data(path=pdf_file)
 
 
 # ----------------LLM model load----------------
+# models = gemma2-9b-it; llama3-70b-8192; 
 chat = ChatOpenAI(
     temperature=0,
     model = "llama3-70b-8192",
@@ -32,11 +33,13 @@ chat = ChatOpenAI(
 
 # ------------------output schema of knowledge graph-------------------
 schema = '''
-```[
+```json
+[
     {
-        "node_1": str(key_entity_1 extracted from structured data),
-        "node_2": str(key_entity_2 extracted from sturctured data),
-        "edge" : str(relationship between node_1 and node_2)
+        "head": "head entity extracted from structured data",
+        "relation" : "relationship between head and tail",
+        "tail": "tail entity extracted from sturctured data"
+        
     },
     {...}
 ]```
@@ -66,7 +69,7 @@ class GraphState(TypedDict):
         struct_out: str
         struct_check: str
         kg_out : list
-        kg_check : list
+        # kg_check : list
         
 
 
@@ -86,7 +89,7 @@ def struct_out(state):
         # print(text)
 
         struct_output = structured_chunk_chain.invoke({"text_chunk": text})
-        # print(json_output)
+
         
         return {"struct_out": struct_output.content}
 
@@ -110,6 +113,23 @@ def kg_out(state):
         # print(json_output)
         
         kg_output = kg_creation_chain.invoke({"struct_out": struct_check, "schema": schema})
+        kg_output = kg_output.content
+        start_index = kg_output.find("```json")
+        if start_index != -1:
+        # Find the second occurrence of ```
+            end_index = kg_output.find("```", start_index + 7)
+            if end_index != -1:
+            # Extract the substring between the backticks
+                kg_output = kg_output[start_index + 7:end_index]
+            # print(f"Knowledge Graph: {response}")
+            else:
+                print("Second set of backticks not found")
+        else:
+            print("First set of backticks not found")
+
+        # print(kg_output)
+        kg_output = json.loads(kg_output)
+
         # print(kg_output)
         
         return {"kg_out": kg_output}
@@ -127,6 +147,10 @@ def struct_check(state):
     start_index = struct_updated.find("Updated Complete Structured Data:") + 33
     end_index = len(struct_updated)
     struct_updated=struct_updated[start_index:end_index]
+
+    print(struct_out)
+    print("\n------------------\n Updated Structure")
+    print(struct_updated)
     return {"struct_check": struct_updated}
 
 
@@ -138,12 +162,22 @@ def kg_check(state):
 
      kg_updated = kg_completeness_check_chain.invoke({"struct_out": struct_out, "kg_out": kg_out, "schema": schema})
      kg_updated = kg_updated.content
-     start_index = kg_updated.find("New entries to Knowledge Graph:") + 31
-     end_index = len(kg_updated)
+     start_index = kg_updated.find("```json")
+     if start_index != -1:
+        # Find the second occurrence of ```
+        end_index = kg_updated.find("```", start_index + 7)
+        if end_index != -1:
+            # Extract the substring between the backticks
+            kg_updated = kg_updated[start_index + 7:end_index]
+            # print(f"Knowledge Graph: {response}")
+        else:
+            print("Second set of backticks not found")
+     else:
+        print("First set of backticks not found")
 
-     kg_updated=kg_updated[start_index:end_index]
+     print(kg_updated)
      kg_updated_list = json.loads(kg_updated)
-     kg_updated = kg_out.append(kg_updated_list)
+     kg_updated = kg_out + kg_updated_list
      
      return {"kg_check": kg_updated}
 
@@ -156,12 +190,13 @@ workflow = StateGraph(GraphState)
 workflow.add_node("structured_out", struct_out) # web search
 workflow.add_node("kg_creation", kg_out)
 workflow.add_node("structured_validation", struct_check)
-workflow.add_node("kg_validation", kg_check)
+# workflow.add_node("kg_validation", kg_check)
 workflow.set_entry_point("structured_out")
 workflow.add_edge("structured_out", "structured_validation")
 workflow.add_edge("structured_validation", "kg_creation")
-workflow.add_edge("kg_creation", "kg_validation")
-workflow.set_finish_point("kg_validation")
+# workflow.add_edge("kg_creation", "kg_validation")
+workflow.set_finish_point("kg_creation")
+# workflow.set_finish_point("kg_validation")
 
 app = workflow.compile()
 
@@ -169,15 +204,17 @@ for chunk in range(chunks):
 
     ans = app.invoke({"text_chunk": pages[chunk].page_content})
     try:
-        kg_append = pd.DataFrame(ans["kg_check"])
+        # kg_append = pd.DataFrame(ans["kg_check"])
+        kg_append = pd.DataFrame(ans["kg_out"])
         kg_df = pd.concat([kg_df, kg_append], ignore_index=True)
 
     except:
-        kg_df = pd.DataFrame(ans["kg_check"])
+        # kg_df = pd.DataFrame(ans["kg_check"])
+        kg_df = pd.DataFrame(ans["kg_out"])
 
     print("relationships generated: ", len(kg_df))
     
-
+    print(kg_df)
 # --------convert and save to JSON file----------
 
 write_to_json(output_file_path=output_file_path, kg_df=kg_df)

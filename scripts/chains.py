@@ -45,9 +45,9 @@ def structured_completeness_check(chat):
 
 
 def kg_creation(chat):
-    system = '''You are given a structured knowledge data. Extrapolate as many entities (nodes) and relationships (edges) as you can from the structured data and generate a structured knowledge graph. \n
+    system = '''You are given a structured knowledge data. Extrapolate as many entities (i.e., head and tail entity) and relationships between them as you can from the structured data and generate a structured knowledge graph. \n
     Make sure to include each and every minute detail in knowledge graph. \n
-    Make sure to return a JSON blob with keys 'node_1, 'node_2' and 'edge'. \n
+    Make sure to return a JSON blob with keys "head", "relation" and "tail". \n
     The output JSON format: \n
     {schema}
     '''
@@ -55,7 +55,7 @@ def kg_creation(chat):
     {struct_out}
     '''
     prompt = ChatPromptTemplate.from_messages([("system", system), ("human", human)])
-    chain = prompt | chat | JsonOutputParser()
+    chain = prompt | chat
     return chain
 
 

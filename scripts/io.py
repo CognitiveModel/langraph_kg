@@ -35,7 +35,7 @@ def write_to_json(output_file_path, kg_df):
         with open(output_file_path, 'r') as file:
             data = json.load(file)
 
-            data.extend(json_string)    
+            data.extend(json_string)   
 
 
             # Write the updated data back to the JSON file
